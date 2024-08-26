@@ -1,4 +1,3 @@
-//authController.ts
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
@@ -6,23 +5,24 @@ import moment from 'moment';
 import { db } from '../../config/db';
 import { recoverPasswordTemplate } from '../../templates/recoverPasswordTemplate';
 import { generateVerificationCode } from '../utils/generateVerificationCode';
+import {
+    SELECT_USER_BY_EMAIL,
+    INSERT_USER,
+    UPDATE_USER_RESET_CODE,
+    SELECT_USER_BY_RESET_CODE,
+    UPDATE_USER_PASSWORD,
+} from '../constants/sqlQueries';
+import { sendMail } from '../services/authService';
 
-// Definir constantes para las consultas SQL
-const SELECT_USER_BY_EMAIL = 'select * from usuarios where user_email = ?';
-const INSERT_USER = 'insert into usuarios (user_nom, user_apels, user_email, user_pass, id_rol) values (?, ?, ?, ?, 3)';
-const UPDATE_USER_RESET_CODE = 'update usuarios set user_reset_code = ?, user_reset_code_expiration = ? where id_user = ?';
-const SELECT_USER_BY_RESET_CODE = 'select * from usuarios where user_reset_code = ? and user_reset_code_expiration > ?';
-const UPDATE_USER_PASSWORD = 'update usuarios set user_pass = ?, user_reset_code = NULL, user_reset_code_expiration = NULL where id_user = ?';
-
-
+// Configurar el transportador de nodemailer
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
     secure: true,
     auth: {
-        user: 'dilanfantas@gmail.com', // Esto es mejor dejarlo en un archivo de configuración o en variables de entorno
-        pass: 'jegc hedq jngv tyyg' // Esto es mejor dejarlo en un archivo de configuración o en variables de entorno
-    }
+        user: process.env.EMAIL_USER!,
+        pass: process.env.EMAIL_PASS!,
+    },
 });
 
 export const ingresar = async (req: Request, res: Response) => {
@@ -40,7 +40,6 @@ export const ingresar = async (req: Request, res: Response) => {
         }
 
         const user = results[0];
-        
         const isMatch = await bcrypt.compare(password, user.user_pass);
         if (isMatch) {
             return res.status(200).send('Iniciaste sesión');
@@ -106,13 +105,13 @@ export const recuperar = async (req: Request, res: Response) => {
         const htmlContent = recoverPasswordTemplate(verificationCode);
 
         const mailOptions = {
-            from: 'dilanfantas@gmail.com',  // Esto es mejor dejarlo en un archivo de configuración o en variables de entorno
+            from: process.env.EMAIL_USER!,
             to: email,
             subject: 'Código de verificación para restablecer contraseña || Mr. Homero',
             html: htmlContent,
         };
 
-        await transporter.sendMail(mailOptions);
+        await sendMail(transporter, mailOptions);
         res.status(200).json({ message: 'Código de verificación enviado por correo electrónico' });
     } catch (error) {
         console.error('Error en la consulta:', error);

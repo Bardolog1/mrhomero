@@ -1,4 +1,3 @@
-//auth.ts
 import express, { Router } from 'express';
 import * as authController from '../controllers/authController';
 
