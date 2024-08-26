@@ -1,20 +1,27 @@
+//authController.ts
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import moment from 'moment';
-import { db } from '../config/db';
-import { recoverPasswordTemplate } from '../templates/recoverPasswordTemplate';
+import { db } from '../../config/db';
+import { recoverPasswordTemplate } from '../../templates/recoverPasswordTemplate';
+import { generateVerificationCode } from '../utils/generateVerificationCode';
 
-const secret = 'mysecretkey';
+// Definir constantes para las consultas SQL
+const SELECT_USER_BY_EMAIL = 'select * from usuarios where user_email = ?';
+const INSERT_USER = 'insert into usuarios (user_nom, user_apels, user_email, user_pass, id_rol) values (?, ?, ?, ?, 3)';
+const UPDATE_USER_RESET_CODE = 'update usuarios set user_reset_code = ?, user_reset_code_expiration = ? where id_user = ?';
+const SELECT_USER_BY_RESET_CODE = 'select * from usuarios where user_reset_code = ? and user_reset_code_expiration > ?';
+const UPDATE_USER_PASSWORD = 'update usuarios set user_pass = ?, user_reset_code = NULL, user_reset_code_expiration = NULL where id_user = ?';
 
-// Configuración de transporte de nodemailer para enviar correos electrónicos
+
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
     secure: true,
     auth: {
-        user: 'dilanfantas@gmail.com',
-        pass: 'jegc hedq jngv tyyg'
+        user: 'dilanfantas@gmail.com', // Esto es mejor dejarlo en un archivo de configuración o en variables de entorno
+        pass: 'jegc hedq jngv tyyg' // Esto es mejor dejarlo en un archivo de configuración o en variables de entorno
     }
 });
 
@@ -26,18 +33,16 @@ export const ingresar = async (req: Request, res: Response) => {
     }
 
     try {
-        const [results] = await db.query('select * from usuarios where user_email = ?', [email]);
+        const [results] = await db.query<any[]>(SELECT_USER_BY_EMAIL, [email]);
 
         if (results.length === 0) {
             return res.status(400).send('Usuario no encontrado');
         }
 
         const user = results[0];
-
-        // Verificar la contraseña
+        
         const isMatch = await bcrypt.compare(password, user.user_pass);
         if (isMatch) {
-            // Inicio de sesión correcto
             return res.status(200).send('Iniciaste sesión');
         } else {
             return res.status(400).send('Contraseña incorrecta');
@@ -60,17 +65,16 @@ export const registrar = async (req: Request, res: Response) => {
     }
 
     try {
-        const [result] = await db.query('select * from usuarios where user_email = ?', [email]);
+        const [result] = await db.query<any[]>(SELECT_USER_BY_EMAIL, [email]);
 
         if (result.length > 0) {
             return res.status(400).send('El usuario ya existe');
         }
 
         const hashPassword = await bcrypt.hash(password, 10);
-        const q = 'insert into usuarios (user_nom, user_apels, user_email, user_pass, id_rol) values (?, ?, ?, ?, 3)';
         const values = [nombres, apellidos, email, hashPassword];
 
-        await db.query(q, values);
+        await db.query(INSERT_USER, values);
 
         return res.status(200).send('Usuario creado con éxito');
     } catch (error) {
@@ -87,7 +91,7 @@ export const recuperar = async (req: Request, res: Response) => {
     }
 
     try {
-        const [results] = await db.query('select * from usuarios where user_email = ?', [email]);
+        const [results] = await db.query<any[]>(SELECT_USER_BY_EMAIL, [email]);
 
         if (results.length === 0) {
             return res.status(400).send('Usuario no encontrado');
@@ -97,13 +101,12 @@ export const recuperar = async (req: Request, res: Response) => {
         const verificationCode = generateVerificationCode();
         const expirationDate = moment().add(1, 'hour').format('YYYY-MM-DD HH:mm:ss');
 
-        await db.query('update usuarios set user_reset_code = ?, user_reset_code_expiration = ? where id_user = ?', [verificationCode, expirationDate, user.id_user]);
+        await db.query(UPDATE_USER_RESET_CODE, [verificationCode, expirationDate, user.id_user]);
 
-        // Utilizar la plantilla de HTML para el cuerpo del correo
         const htmlContent = recoverPasswordTemplate(verificationCode);
 
         const mailOptions = {
-            from: 'dilanfantas@gmail.com',
+            from: 'dilanfantas@gmail.com',  // Esto es mejor dejarlo en un archivo de configuración o en variables de entorno
             to: email,
             subject: 'Código de verificación para restablecer contraseña || Mr. Homero',
             html: htmlContent,
@@ -126,7 +129,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     try {
         const fechaActual = moment().format('YYYY-MM-DD HH:mm:ss');
-        const [results] = await db.query('select * from usuarios where user_reset_code = ? AND user_reset_code_expiration > ?', [verificationCode, fechaActual]);
+        const [results] = await db.query<any[]>(SELECT_USER_BY_RESET_CODE, [verificationCode, fechaActual]);
 
         if (results.length === 0) {
             return res.status(400).send('Código de verificación inválido, expirado o usuario no encontrado');
@@ -135,7 +138,7 @@ export const resetPassword = async (req: Request, res: Response) => {
         const user = results[0];
         const hashPassword = await bcrypt.hash(newPassword, 10);
 
-        await db.query('update usuarios set user_pass = ?, user_reset_code = NULL, user_reset_code_expiration = NULL where id_user = ?', [hashPassword, user.id_user]);
+        await db.query(UPDATE_USER_PASSWORD, [hashPassword, user.id_user]);
 
         res.status(200).send('Contraseña restablecida con éxito');
     } catch (error) {
@@ -143,7 +146,3 @@ export const resetPassword = async (req: Request, res: Response) => {
         res.status(500).send('Error en el servidor');
     }
 };
-
-function generateVerificationCode(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-}
