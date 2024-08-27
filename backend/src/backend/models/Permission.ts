@@ -1,35 +1,17 @@
+import { PermissionTypes } from './PermissionTypes';
 class Permission {
-    private static permissions: Permission[] = [];
+    
 
     constructor(
-        private readonly id: string,
-        private name: string,
-        private description: string,
+        private readonly permission : PermissionTypes,
         private status: boolean = false,
         private lastUpdate: Date = new Date()
     ) {
-        Permission.permissions.push(this);
+        
     }
    
-
-    getId(): string {
-        return this.id;
-    }
-
-    setName(name: string): void {
-        this.name = name;
-    }
-
-    getName(): string {
-        return this.name;
-    }
-
-    setDescription(description: string): void {
-        this.description = description;
-    }
-
-    getDescription(): string {
-        return this.description;
+    getPermission(): PermissionTypes {
+        return this.permission;
     }
 
     setStatus(status: boolean): void {

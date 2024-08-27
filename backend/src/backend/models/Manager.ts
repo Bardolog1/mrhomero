@@ -25,9 +25,17 @@ class Manager extends Employee {
     }
     
     
+    setStore(stores: Store): void {
+        this.stores.push(stores);
+    }
     
+    getStores(): Store[] {
+        return this.stores;
+    }
     
-    
+    setEmployee(employee: Employee): void {
+        this.employees.push(employee);
+    }
 }
 
 export default Manager;

@@ -2,9 +2,12 @@ import Address from "./Address";
 import Person from "./Person";
 import Permission from "./Permission";
 import Phone from "./Phone";
+import { PermissionTypes } from "./PermissionTypes";
+
 
 class Employee extends Person {
-    private hireDate: Date = new Date();
+    private hireDate: Date;
+    private status: boolean = false;
 
     constructor(
         id: string,
@@ -19,9 +22,13 @@ class Employee extends Person {
         private role: string,
         private department: string,
         private salary: number,
-        private permissions: Permission = new Permission("1", "Default", "Default permission")
+        private permissions: Permission[] = [],
+       
     ) {
         super(id, personId, personalIdType, name, lastName, age, phones, email, address);
+        permissions.push(new Permission(PermissionTypes.ONLY_BASIC_ACCESS, true));
+        this.status = true;
+        this.hireDate = new Date();
     }
         
         setRole(role: string): void {
@@ -52,11 +59,11 @@ class Employee extends Person {
             this.hireDate = hireDate;
         }
         
-        setPermissions(permissions: Permission): void {
-            this.permissions = permissions;
+        setPermission(permission: Permission): void {
+            this.permissions.push(permission);
         }
         
-        getPermissions(): Permission {
+        getPermissions(): Permission[] {
             return this.permissions;
         }
         
