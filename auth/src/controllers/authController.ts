@@ -2,8 +2,8 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import moment from 'moment';
-import { db } from '../../config/db';
-import { recoverPasswordTemplate } from '../../templates/recoverPasswordTemplate';
+import { db } from '../config/db';
+import { recoverPasswordTemplate } from '../templates/recoverPasswordTemplate';
 import { generateVerificationCode } from '../utils/generateVerificationCode';
 import {
     SELECT_USER_BY_EMAIL,

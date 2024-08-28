@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "auth",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -13,7 +13,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "backend": "file:",
+    "auth": "file:",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
@@ -23,8 +23,6 @@
     "mysql": "^2.18.1",
     "mysql2": "^3.11.0",
     "nodemailer": "^6.9.14",
-    "reflect-metadata": "^0.2.2",
-    "typeorm": "^0.3.20",
     "uniqid": "^5.4.0"
   },
   "devDependencies": {
